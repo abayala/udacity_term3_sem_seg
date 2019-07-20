@@ -33,7 +33,7 @@ def load_vgg(sess, vgg_path):
     vgg_layer3_out_tensor_name = 'layer3_out:0'
     vgg_layer4_out_tensor_name = 'layer4_out:0'
     vgg_layer7_out_tensor_name = 'layer7_out:0'
-    tf.save_model.loader.load(sess,[vgg_tag], vgg_path)
+    tf.saved_model.loader.load(sess,[vgg_tag], vgg_path)
     graph = tf.get_default_graph()
     w1 = graph.get_tensor_by_name(vgg_input_tensor_name)
     keep = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
@@ -57,29 +57,29 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     # First layer
 
     conv_1x1_layer7 = tf.layers.conv2d(vgg_layer7_out,num_classes,1, padding = 'same',
-                                kernel_regulaizer =tf.contrib.layers.l2_regularizer(1e-3))
+                                       kernel_regularizer =tf.contrib.layers.l2_regularizer(1e-3))
     # Transpose factor 2
     trasnspose_layer7_f2 = tf.layers.conv2d_transpose(conv_1x1_layer7,num_classes,4,strides=(2, 2), padding = 'same',
-                                        kernel_regulaizer=tf.contrib.layers.l2_regularizer(1e-3) )
+                                                      kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3) )
 
     #add skip layer from layer 4
     conv_1x1_layer4 = tf.layers.conv2d(vgg_layer4_out,num_classes,1, padding = 'same',
-                                kernel_regulaizer =tf.contrib.layers.l2_regularizer(1e-3))
+                                       kernel_regularizer =tf.contrib.layers.l2_regularizer(1e-3))
     skip_from_layer4 = tf.add(trasnspose_layer7_f2, conv_1x1_layer4)
 
     # Transpose factor 2
     transpose_skip_layer4_f2 =tf.layers.conv2d_transpose(skip_from_layer4,num_classes,4,strides=(2, 2), padding = 'same',
-                                        kernel_regulaizer=tf.contrib.layers.l2_regularizer(1e-3) )
+                                                         kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3) )
 
     # Adding skip layer.
     conv_1x1_layer3 = tf.layers.conv2d(vgg_layer3_out,num_classes,1, padding = 'same',
-                                kernel_regulaizer =tf.contrib.layers.l2_regularizer(1e-3))
+                                       kernel_regularizer =tf.contrib.layers.l2_regularizer(1e-3))
     skip_from_layer3 = tf.add(transpose_skip_layer4_f2, conv_1x1_layer3)
 
 
     #  Transpose factor 8.
     transpose_skip_layer3_f8 = tf.layers.conv2d_transpose(skip_from_layer3,num_classes,16,strides=(8, 8), padding = 'same',
-                                        kernel_regulaizer=tf.contrib.layers.l2_regularizer(1e-3) )
+                                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3) )
 
 
     return transpose_skip_layer3_f8
@@ -160,13 +160,13 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     # Close Summary
     summary_writer.close()
 
-tests.test_train_nn(train_nn)
+#tests.test_train_nn(train_nn)
 
 
 def run():
     num_classes = 2
     image_shape = (160, 576)  # KITTI dataset uses 160x576 images
-    data_dir = './data'
+    data_dir = './data_road'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
 
@@ -187,8 +187,8 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # Placeholders
-        correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes], name='correct_label')
-        learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+        correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes])
+        learning_rate = tf.placeholder(tf.float32)
 
         # TODO: Build NN using load_vgg, layers, and optimize function
         #load_vgg
