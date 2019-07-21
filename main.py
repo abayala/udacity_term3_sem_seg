@@ -166,7 +166,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 def run():
     num_classes = 2
     image_shape = (160, 576)  # KITTI dataset uses 160x576 images
-    data_dir = '/data'
+    data_dir = './data'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
 
