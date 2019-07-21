@@ -57,28 +57,36 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     # First layer
 
     conv_1x1_layer7 = tf.layers.conv2d(vgg_layer7_out,num_classes,1, padding = 'same',
-                                       kernel_regularizer =tf.contrib.layers.l2_regularizer(1e-3))
+                                       kernel_regularizer =tf.contrib.layers.l2_regularizer(1e-3),
+                                       kernel_initializer=tf.truncated_normal_initializer(stddev=0.01)
+                                       )
     # Transpose factor 2
     trasnspose_layer7_f2 = tf.layers.conv2d_transpose(conv_1x1_layer7,num_classes,4,strides=(2, 2), padding = 'same',
+                                                      kernel_initializer=tf.truncated_normal_initializer(stddev=0.01),
                                                       kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3) )
 
     #add skip layer from layer 4
     conv_1x1_layer4 = tf.layers.conv2d(vgg_layer4_out,num_classes,1, padding = 'same',
+                                       kernel_initializer=tf.truncated_normal_initializer(stddev=0.01),
                                        kernel_regularizer =tf.contrib.layers.l2_regularizer(1e-3))
     skip_from_layer4 = tf.add(trasnspose_layer7_f2, conv_1x1_layer4)
 
     # Transpose factor 2
     transpose_skip_layer4_f2 =tf.layers.conv2d_transpose(skip_from_layer4,num_classes,4,strides=(2, 2), padding = 'same',
+                                                         kernel_initializer=tf.truncated_normal_initializer(stddev=0.01),
                                                          kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3) )
 
     # Adding skip layer.
     conv_1x1_layer3 = tf.layers.conv2d(vgg_layer3_out,num_classes,1, padding = 'same',
+                                       kernel_initializer=tf.truncated_normal_initializer(stddev=0.01),
                                        kernel_regularizer =tf.contrib.layers.l2_regularizer(1e-3))
     skip_from_layer3 = tf.add(transpose_skip_layer4_f2, conv_1x1_layer3)
 
 
     #  Transpose factor 8.
     transpose_skip_layer3_f8 = tf.layers.conv2d_transpose(skip_from_layer3,num_classes,16,strides=(8, 8), padding = 'same',
+                                                          kernel_initializer=tf.truncated_normal_initializer(
+                                                              stddev=0.01),
                                                           kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3) )
 
 
@@ -101,12 +109,13 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
 
     # create loss function.
     cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=correct_label))
-
+    reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+    total_loss = cross_entropy_loss + sum(reg_losses)
     # Define optimizer. Adam in this case to have variable learning rate.
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     # Apply optimizer to the loss function.
-    train_op = optimizer.minimize(cross_entropy_loss)
-    return logits, train_op, cross_entropy_loss
+    train_op = optimizer.minimize(total_loss)
+    return logits, train_op, total_loss
 #tests.test_optimize(optimize)
 
 
@@ -188,7 +197,7 @@ def run():
         # TODO: Train NN using the train_nn function
         epochs = 50
         batch_size = 5
-        
+
 
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,correct_label, keep_prob, learning_rate)
         # TODO: Save inference data using helper.save_inference_samples
